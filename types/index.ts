@@ -7,6 +7,7 @@ export interface User {
   dailyCarbsGoal: number;
   dailyFatsGoal: number;
   profileImage?: string;
+  dietPreference: DietPreference | null;
 }
 
 export interface Meal {
