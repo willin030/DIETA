@@ -10,8 +10,8 @@ import { Restaurant } from '@/types';
 import { Stack } from 'expo-router';
 import * as Location from 'expo-location';
 
-// Standard map style image URL that looks like Google Maps
-const MAP_IMAGE_URL = 'https://images.unsplash.com/photo-1569336415962-a4bd9f69c07b?q=80&w=2831&auto=format&fit=crop';
+// Map with roads image URL - this shows a map with visible road network
+const MAP_IMAGE_URL = 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2574&auto=format&fit=crop';
 
 // Food categories for filtering
 const FOOD_CATEGORIES = [
@@ -76,6 +76,10 @@ export default function MapScreen() {
     alert('Getting your current location...');
   };
   
+  const handleBackToHome = () => {
+    router.replace('/(tabs)');
+  };
+  
   // Set up the header options
   React.useEffect(() => {
     router.setParams({
@@ -85,7 +89,7 @@ export default function MapScreen() {
   
   return (
     <View style={styles.container}>
-      {/* Map background with standard map style */}
+      {/* Map background with roads */}
       <Image
         source={{ uri: MAP_IMAGE_URL }}
         style={styles.mapImage}
@@ -100,7 +104,10 @@ export default function MapScreen() {
       
       {/* Top header with three icons in a row */}
       <View style={styles.topHeader}>
-        <TouchableOpacity style={styles.headerButton}>
+        <TouchableOpacity 
+          style={styles.headerButton}
+          onPress={handleBackToHome}
+        >
           <User size={20} color={Colors.text} />
         </TouchableOpacity>
         
