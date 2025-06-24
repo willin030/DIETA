@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, KeyboardAvoidingView } from 'react-native';
-import { useRouter, Stack } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, MapPin, ArrowLeft } from 'lucide-react-native';
@@ -11,15 +11,25 @@ import { useMealsStore } from '@/store/mealsStore';
 
 export default function ManualEntryScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const addMeal = useMealsStore((state) => state.addMeal);
   
-  const [name, setName] = useState('');
-  const [calories, setCalories] = useState('');
-  const [protein, setProtein] = useState('');
-  const [carbs, setCarbs] = useState('');
-  const [fats, setFats] = useState('');
-  const [location, setLocation] = useState('');
-  const [image, setImage] = useState<string | null>(null);
+  // Get params if they exist (from recommended meal selection)
+  const paramName = params.name as string | undefined;
+  const paramCalories = params.calories as string | undefined;
+  const paramProtein = params.protein as string | undefined;
+  const paramCarbs = params.carbs as string | undefined;
+  const paramFats = params.fats as string | undefined;
+  const paramLocation = params.location as string | undefined;
+  const paramImageUrl = params.imageUrl as string | undefined;
+  
+  const [name, setName] = useState(paramName || '');
+  const [calories, setCalories] = useState(paramCalories || '');
+  const [protein, setProtein] = useState(paramProtein || '');
+  const [carbs, setCarbs] = useState(paramCarbs || '');
+  const [fats, setFats] = useState(paramFats || '');
+  const [location, setLocation] = useState(paramLocation || '');
+  const [image, setImage] = useState<string | null>(paramImageUrl || null);
   const [loading, setLoading] = useState(false);
   
   const handlePickImage = async () => {

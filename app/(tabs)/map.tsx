@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, ScrollView, Dimensions, Modal } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { PlusCircle, X, Search, Navigation, Sliders, MapPin, User, ChevronDown } from 'lucide-react-native';
+import { PlusCircle, X, Search, Navigation, Sliders, MapPin, User, ChevronDown, ArrowRight } from 'lucide-react-native';
 import Button from '@/components/Button';
 import Colors from '@/constants/colors';
-import { mockRestaurants } from '@/constants/mockData';
-import { Restaurant } from '@/types';
+import { mockRestaurants, mockMenuItems } from '@/constants/mockData';
+import { Restaurant, RestaurantMenuItem } from '@/types';
 import { Stack } from 'expo-router';
 import * as Location from 'expo-location';
+import RecommendedMealCard from '@/components/RecommendedMealCard';
+import { getRecommendedMenuItems } from '@/utils/recommendationUtils';
+import { useAuth } from '@/context/AuthContext';
 
 // Map with roads image URL - this shows a map with visible road network
 const MAP_IMAGE_URL = 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2574&auto=format&fit=crop';
@@ -26,11 +29,14 @@ const FOOD_CATEGORIES = [
 
 export default function MapScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [recommendedMeals, setRecommendedMeals] = useState<{item: RestaurantMenuItem; score: number}[]>([]);
   
   useEffect(() => {
     (async () => {
@@ -49,12 +55,29 @@ export default function MapScreen() {
     })();
   }, []);
   
+  // Get restaurant recommendations when a restaurant is selected
+  useEffect(() => {
+    if (selectedRestaurant) {
+      const recommendations = getRecommendedMenuItems(
+        mockMenuItems,
+        user,
+        selectedRestaurant.id,
+        3 // Limit to 3 recommendations
+      );
+      setRecommendedMeals(recommendations);
+    } else {
+      setRecommendedMeals([]);
+    }
+  }, [selectedRestaurant, user]);
+  
   const handleSelectRestaurant = (restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant);
+    setShowRecommendations(false); // Close recommendations panel if open
   };
   
   const handleCloseRestaurantDetails = () => {
     setSelectedRestaurant(null);
+    setShowRecommendations(false);
   };
   
   const handleAddMealFromRestaurant = () => {
@@ -80,12 +103,38 @@ export default function MapScreen() {
     router.replace('/(tabs)');
   };
   
+  const handleToggleRecommendations = () => {
+    setShowRecommendations(!showRecommendations);
+  };
+  
+  const handleSelectMenuItem = (menuItem: RestaurantMenuItem) => {
+    // Navigate to manual entry with pre-filled data
+    router.push({
+      pathname: '/manual-entry',
+      params: {
+        name: menuItem.name,
+        calories: menuItem.calories.toString(),
+        protein: menuItem.protein.toString(),
+        carbs: menuItem.carbs.toString(),
+        fats: menuItem.fats.toString(),
+        location: selectedRestaurant?.name || '',
+        imageUrl: menuItem.imageUrl || ''
+      }
+    });
+  };
+  
   // Set up the header options
   React.useEffect(() => {
     router.setParams({
       header: 'custom'
     });
   }, []);
+  
+  // Get restaurant name by ID
+  const getRestaurantName = (restaurantId: string): string => {
+    const restaurant = mockRestaurants.find(r => r.id === restaurantId);
+    return restaurant?.name || 'Unknown Restaurant';
+  };
   
   return (
     <View style={styles.container}>
@@ -260,15 +309,81 @@ export default function MapScreen() {
               </View>
             </View>
             
-            <Button
-              title="Add Meal from Here"
-              onPress={handleAddMealFromRestaurant}
-              icon={<PlusCircle size={18} color={Colors.white} style={styles.buttonIcon} />}
-              style={styles.addMealButton}
-            />
+            <View style={styles.buttonRow}>
+              <Button
+                title="Add Meal from Here"
+                onPress={handleAddMealFromRestaurant}
+                icon={<PlusCircle size={18} color={Colors.white} style={styles.buttonIcon} />}
+                style={styles.addMealButton}
+              />
+              
+              <TouchableOpacity 
+                style={styles.recommendationsButton}
+                onPress={handleToggleRecommendations}
+              >
+                <Text style={styles.recommendationsText}>
+                  {showRecommendations ? 'Hide Recommendations' : 'View Recommendations'}
+                </Text>
+                <ChevronDown size={18} color={Colors.primary} style={showRecommendations ? styles.rotatedIcon : undefined} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       )}
+      
+      {/* Meal recommendations modal */}
+      <Modal
+        visible={showRecommendations && selectedRestaurant !== null}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowRecommendations(false)}
+      >
+        <View style={styles.recommendationsModal}>
+          <View style={styles.recommendationsHeader}>
+            <Text style={styles.recommendationsTitle}>Recommended for You</Text>
+            <Text style={styles.recommendationsSubtitle}>
+              Based on your nutrition goals at {selectedRestaurant?.name}
+            </Text>
+            
+            <TouchableOpacity 
+              style={styles.closeRecommendationsButton}
+              onPress={() => setShowRecommendations(false)}
+            >
+              <X size={24} color={Colors.text} />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView 
+            style={styles.recommendationsList}
+            contentContainerStyle={styles.recommendationsContent}
+          >
+            {recommendedMeals.length > 0 ? (
+              recommendedMeals.map(({ item, score }) => (
+                <RecommendedMealCard
+                  key={item.id}
+                  item={item}
+                  restaurantName={getRestaurantName(item.restaurantId)}
+                  matchScore={score}
+                  onPress={() => handleSelectMenuItem(item)}
+                />
+              ))
+            ) : (
+              <View style={styles.noRecommendations}>
+                <Text style={styles.noRecommendationsText}>
+                  No recommendations available for this restaurant
+                </Text>
+              </View>
+            )}
+            
+            <Button
+              title="Back to Map"
+              onPress={() => setShowRecommendations(false)}
+              variant="outline"
+              style={styles.backToMapButton}
+            />
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -588,10 +703,82 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontWeight: '500',
   },
-  addMealButton: {
+  buttonRow: {
     marginTop: 8,
+  },
+  addMealButton: {
+    marginBottom: 12,
   },
   buttonIcon: {
     marginRight: 8,
+  },
+  recommendationsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  recommendationsText: {
+    fontSize: 16,
+    color: Colors.primary,
+    fontWeight: '500',
+    marginRight: 4,
+  },
+  rotatedIcon: {
+    transform: [{ rotate: '180deg' }],
+  },
+  // Recommendations modal
+  recommendationsModal: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  recommendationsHeader: {
+    backgroundColor: Colors.white,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 16,
+    paddingHorizontal: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightGray,
+  },
+  recommendationsTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  recommendationsSubtitle: {
+    fontSize: 16,
+    color: Colors.mediumGray,
+  },
+  closeRecommendationsButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    right: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.lightGray,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recommendationsList: {
+    flex: 1,
+  },
+  recommendationsContent: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  noRecommendations: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noRecommendationsText: {
+    fontSize: 16,
+    color: Colors.mediumGray,
+    textAlign: 'center',
+  },
+  backToMapButton: {
+    marginTop: 16,
   },
 });

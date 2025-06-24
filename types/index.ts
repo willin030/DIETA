@@ -31,6 +31,20 @@ export interface Restaurant {
   imageUrl?: string;
 }
 
+export interface RestaurantMenuItem {
+  id: string;
+  restaurantId: string;
+  name: string;
+  description: string;
+  price: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  imageUrl?: string;
+  tags: string[];
+}
+
 export interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
