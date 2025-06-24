@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Camera, Edit } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import Button from '@/components/Button';
 
 export default function LogMealOptionsScreen() {
   const router = useRouter();
@@ -14,6 +15,10 @@ export default function LogMealOptionsScreen() {
   
   const handleManualEntry = () => {
     router.push('/manual-entry');
+  };
+  
+  const handleCancel = () => {
+    router.replace('/(tabs)');
   };
   
   return (
@@ -51,6 +56,13 @@ export default function LogMealOptionsScreen() {
           </Text>
         </View>
       </TouchableOpacity>
+      
+      <Button
+        title="Cancel"
+        onPress={handleCancel}
+        variant="outline"
+        style={styles.cancelButton}
+      />
       
       <Image
         source={{ uri: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?q=80&w=2670&auto=format&fit=crop' }}
@@ -113,6 +125,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.mediumGray,
     lineHeight: 20,
+  },
+  cancelButton: {
+    marginTop: 16,
   },
   backgroundImage: {
     position: 'absolute',
