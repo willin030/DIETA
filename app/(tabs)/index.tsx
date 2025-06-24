@@ -16,7 +16,7 @@ export default function HomeScreen() {
   const { meals, getTodaysNutrition } = useMealsStore();
   
   const todaysNutrition = getTodaysNutrition();
-  const recentMeals = meals.slice(0, 3); // Get the 3 most recent meals
+  const recommendedMeals = meals.slice(0, 3); // Get 3 meals to recommend
   
   const handleLogMeal = () => {
     router.push('/log-meal');
@@ -90,19 +90,23 @@ export default function HomeScreen() {
       </View>
       
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recent Meals</Text>
+        <Text style={styles.sectionTitle}>Recommended Meals</Text>
         <TouchableOpacity onPress={() => router.push('/history')}>
           <Text style={styles.seeAllText}>See All</Text>
         </TouchableOpacity>
       </View>
       
-      {recentMeals.length > 0 ? (
-        recentMeals.map((meal) => (
+      <Text style={styles.recommendationText}>
+        Based on your nutrition goals and preferences
+      </Text>
+      
+      {recommendedMeals.length > 0 ? (
+        recommendedMeals.map((meal) => (
           <MealCard key={meal.id} meal={meal} />
         ))
       ) : (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>No meals logged yet</Text>
+          <Text style={styles.emptyStateText}>No recommendations available yet</Text>
           <Button
             title="Log Your First Meal"
             onPress={handleLogMeal}
@@ -211,7 +215,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 20,
@@ -222,6 +226,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.primary,
     fontWeight: '500',
+  },
+  recommendationText: {
+    fontSize: 14,
+    color: Colors.mediumGray,
+    marginBottom: 16,
+    fontStyle: 'italic',
   },
   emptyState: {
     backgroundColor: Colors.white,
