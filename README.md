@@ -1,2 +1,0 @@
-# DIETA
-Created by Rork
